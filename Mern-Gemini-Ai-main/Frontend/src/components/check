@@ -1,0 +1,144 @@
+import React from "react";
+
+import { MdAttachFile } from "react-icons/md";
+import { FaArrowUp } from "react-icons/fa";
+import Google_Gemini from "../../public/Google-Gemini-Logo.png";
+import { useState } from "react";
+import axios from "axios";
+
+const Prompt = () => {
+  const token = localStorage.getItem("token");
+
+  const [InputValue, SetInputValue] = useState("");
+  const [TypeMessage, SetTypeMessage] = useState("");
+
+  const [messages, setMessages] = useState([]); 
+  const [loading, setLoading] = useState(false); 
+
+  const sendPromptoBackend = async (text) => {
+    try {
+      setLoading(true);
+
+      const res = await axios.post(
+        `${import.meta.env.VITE_BACKEND_URL}/api/deepseek/prompt`,
+        {
+          content: text,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          withCredentials: true,
+        }
+      );
+
+      return res.data.Message;
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSend = async () => {
+    const val = InputValue.trim();
+    if (!val) return;
+
+    const userMsg = { role: "user", content: val };
+    setMessages((prev) => [...prev, userMsg]);
+
+    SetTypeMessage(val);
+    SetInputValue("");
+
+    const aiResponse = await sendPromptoBackend(val);
+    const aiMsg = { role: "ai", content: aiResponse };
+    setMessages((prev) => [...prev, aiMsg]);
+  };
+
+  const handleDown = (e) => {
+    if (e.key === "Enter") {
+      handleSend();
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-between w-full px-4 pb-4 flex-1">
+      {/* Greeting */}
+
+      <div className="mt-16  flex-col text-center">
+        <div className="ml-[-50px] flex justify-center gap-2">
+          <img src={Google_Gemini} alt="" className="h-10 w-10" />
+          <h1 className="text-3xl font-semibold text-white mb-2 ">
+            Hi, I'm Gemini
+          </h1>
+        </div>
+        <p className="text-gray-400  mb-2 text-base">
+          How Can I Help You Today?
+        </p>
+      </div>
+
+      {/* Prompt */}
+      <div className="w-full max-w-2xl flex-1 overflow-y-auto mt-6 mb-4 px-1 h-[60vh]">
+        <div className="space-y-3">
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`${
+                msg.role === "user" ? "bg-blue-600 ml-auto" : "bg-gray-700"
+              } max-w-[70%] p-3 rounded-lg`}
+            >
+              {msg.content}
+            </div>
+          ))}
+          {loading && (
+            <div className="bg-gray-700 p-3 rounded-lg">Thinking...</div>
+          )}
+        </div>
+      </div>
+
+      {/* Input Box  */}
+      <div
+        className="
+            w-full max-w-2xl relative mt-auto"
+      >
+        <div
+          id="Input-wala-div"
+          className="rounded-[2rem] px-6 py-8 shadow-md   bg-[#2f2f2f]"
+        >
+          <input
+            type="text"
+            placeholder="Message Gemini"
+            value={InputValue}
+            onChange={(e) => SetInputValue(e.target.value)}
+            onKeyDown={handleDown}
+            className="bg-transparent w-full text-white placeholder-gray-400 text-lg outline-none"
+          />
+          <div className="flex items-center justify-between mt-4 gap-4">
+            <div className="flex gap-2">
+              <button className="border border-gray-500 text-white text-base px-3 py-1 rounded-full hover:bg-gray-600 transition">
+                DeepThink
+              </button>
+              <button className="border border-gray-500 text-white text-base px-3 py-1 rounded-full hover:bg-gray-600 transition">
+                Search
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button className="text-gray-400 hover:text-white transition">
+                <MdAttachFile />
+              </button>
+              <button
+                onClick={handleSend}
+                className="bg-gray-500 hover:bg-blue-900    transition rounded-full p-2 text-white "
+              >
+                <FaArrowUp />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Prompt;
